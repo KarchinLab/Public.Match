@@ -73,6 +73,106 @@ source        Database of origin (IEDB / VDJdb / McPAS / 10x)
 | [PIRD](https://db.cngb.org/pird/) | large | Pan Immune Repertoire Database; China National GeneBank |
 | [ePytope-TCR datasets](https://www.cell.com/cell-genomics/fulltext/S2666-979X(25)00202-2) | 21 datasets / 762 epitopes | 2025 benchmarking collection on Zenodo |
 
+## Installation
+
+```bash
+git clone https://github.com/Marcus-Mendes/Public.Match
+cd Public.Match
+conda env create -f environment.yml
+conda activate public-match
+pip install -e .
+```
+
+## Usage
+
+### Beta chain (default)
+
+```bash
+python -m public_match --input sequences.fasta
+```
+
+### Alpha chain
+
+```bash
+python -m public_match --input alpha_seqs.fasta --chain alpha
+```
+
+### Paired αβ — two FASTA files (matched by sequence name)
+
+```bash
+python -m public_match --input beta.fasta --input-alpha alpha.fasta --chain paired
+```
+
+### Paired αβ — single TSV/CSV with both columns
+
+```bash
+python -m public_match --input repertoire.tsv --chain paired
+# explicit column names if auto-detection fails:
+python -m public_match --input repertoire.tsv --chain paired \
+  --seq-col cdr3_beta --alpha-col cdr3_alpha
+```
+
+### Select specific databases
+
+```bash
+python -m public_match --input sequences.fasta --db iedb vdjdb mcpas
+```
+
+Available databases: `iedb`, `vdjdb`, `mcpas`, `10x`, `mixtcrpred`, `batcave`, `ots`
+
+### Matching methods and thresholds
+
+```bash
+# BLOSUM62-normalised score (default, 0–1; 0.97 = near-exact match)
+python -m public_match --input sequences.fasta --method blosum --threshold 0.97
+
+# Edit distance (integer; 1 = one substitution allowed)
+python -m public_match --input sequences.fasta --method edit --threshold 1
+
+# Exact match only
+python -m public_match --input sequences.fasta --method exact
+```
+
+### Custom database
+
+```bash
+python -m public_match --input sequences.fasta --custom-db my_db.csv
+# specify the CDR3β column if it differs from the defaults:
+python -m public_match --input sequences.fasta --custom-db my_db.tsv \
+  --custom-db-cdr3-col junction_aa
+```
+
+### Output
+
+Results are written to `public_match_results.csv` by default. Use `--output` to change the path:
+
+```bash
+python -m public_match --input sequences.fasta --output results/my_run.csv
+```
+
+Output columns: `query_name`, `query_cdr3b` (and `query_cdr3a` for paired mode), `cdr3_alpha`, `cdr3_beta`, `epitope`, `mhc`, `v_alpha`, `j_alpha`, `v_beta`, `j_beta`, `source`, `score`.
+
+### All options
+
+```
+python -m public_match --help
+
+  --input/-i PATH          Input file: FASTA or tabular (TSV/CSV/AIRR)
+  --output/-o PATH         Output CSV (default: public_match_results.csv)
+  --db DB [DB ...]         Databases to search (default: all)
+  --method {blosum,edit,exact}  Matching method (default: blosum)
+  --threshold FLOAT        Score threshold (default: 0.97)
+  --chain {beta,alpha,paired}   Chain mode (default: beta)
+  --seq-col COL            CDR3β column in tabular input
+  --alpha-col COL          CDR3α column in tabular input
+  --name-col COL           ID column in tabular input
+  --input-alpha PATH       CDR3α FASTA for paired mode
+  --custom-db PATH [PATH ...]  Custom database file(s)
+  --custom-db-cdr3-col COL     CDR3β column in custom DB
+```
+
+---
+
 ## Hackathon Deliverable
 
 A working CLI prototype that takes a CDR3 repertoire file and returns matched public TCRs from all four databases, with a unified output format and match score.
