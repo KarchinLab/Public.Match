@@ -9,8 +9,10 @@ def _coalesce_cdr3(curated: pd.Series, calculated: pd.Series) -> pd.Series:
 
 
 def load(path: Path = CEDAR_PATH) -> pd.DataFrame:
+    # No pre-filter on Receptor - Type: non-alphabeta rows (5 gammadelta,
+    # 4 construct) carry no beta chains and are excluded naturally when
+    # c2_beta evaluates to False for their delta/construct Chain 2 type.
     df = pd.read_excel(path, sheet_name="Sheet1")
-    df = df[df["Receptor - Type"] == "alphabeta"].copy()
 
     c1_alpha = df["Chain 1 - Type"] == "alpha"
     c2_beta  = df["Chain 2 - Type"] == "beta"
