@@ -242,8 +242,7 @@ Most of the raw rows are mutagenesis scan variants (point mutations of the epito
 **Format:** Excel (.xlsx)
 
 ### Filtering applied
-- Keep only `Receptor - Type == alphabeta`
-- Parse paired, beta-only, and alpha-only rows separately
+- Parse paired, beta-only, and alpha-only rows by chain type columns (no receptor-type pre-filter; 5 gammadelta and 4 construct rows carry no beta chains and fall out naturally)
 - Prefer `CDR3 Curated` over `CDR3 Calculated`
 - Validate CDR3 sequences as canonical amino acids
 - Deduplicate on `(cdr3b, cdr3a, epitope)`
@@ -277,5 +276,5 @@ Counts shown are for **beta-chain mode** (default), after all filtering and dedu
 | MixTCRpred | ~17,700 | ~6,875 | HomoSapiens; dedup on (cdr3b, epitope) |
 | BATCAVE | ~30,600 | ~60 | Human; native peptide only; activity > 0 |
 | NeoTCR | ~1,000 | ~916 | dedup on (cdr3b, epitope) |
-| CEDAR | ~76,200 | ~41,266 | alphabeta; dedup on (cdr3b, cdr3a, epitope) |
+| CEDAR | ~76,200 | ~41,266 | beta chain rows only; dedup on (cdr3b, cdr3a, epitope) |
 | **Total** | | **~356,454** | |
