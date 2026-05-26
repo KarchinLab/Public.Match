@@ -12,15 +12,15 @@ This document describes the reference databases included in `Databases/` and how
 **File:** `Databases/IEDB/iedb.xlsx`
 **Source:** https://www.iedb.org (receptor export)
 **Raw rows:** ~217,000
-**Loaded for matching:** ~26,244
+**Loaded for matching:** ~164,240
 **Format:** Excel (.xlsx), manually exported from the IEDB receptor search
 
 ### Filtering applied
-- Keep only `Receptor - Type == alphabeta`
-- Extract CDR3β from whichever chain (1 or 2) has `Type == beta`
+- Extract CDR3β from whichever chain (1 or 2) has `Type == beta`; no pre-filter on receptor type (gammadelta/construct rows carry no beta chains and fall out naturally)
 - Prefer `CDR3 Curated` over `CDR3 Calculated` where available
 - Validate CDR3β as a canonical amino acid string
 - Deduplicate on `(cdr3b, epitope)`
+- Paired-mode CDR3α filtering is handled by `load_databases`, not the parser
 
 ### Key columns
 
@@ -270,7 +270,7 @@ Counts shown are for **beta-chain mode** (default), after all filtering and dedu
 
 | Database | Raw file rows | Loaded for matching | Key filters |
 |---|---|---|---|
-| IEDB | ~217,000 | ~26,244 | alphabeta only; dedup on (cdr3b, epitope) |
+| IEDB | ~217,000 | ~164,240 | beta chain rows only; dedup on (cdr3b, epitope) |
 | VDJdb | ~209,000 | ~95,256 | HomoSapiens; score ≥ 0; dedup on (cdr3b, cdr3a, epitope) |
 | McPAS | ~40,700 | ~29,649 | Human only; dedup on (cdr3b, epitope) |
 | 10x Dcode | ~190k cells | ~18,561 | Confirmed binders only; dedup on (cdr3b, epitope) |
@@ -278,4 +278,4 @@ Counts shown are for **beta-chain mode** (default), after all filtering and dedu
 | BATCAVE | ~30,600 | ~60 | Human; native peptide only; activity > 0 |
 | NeoTCR | ~1,000 | ~916 | dedup on (cdr3b, epitope) |
 | CEDAR | ~76,200 | ~41,266 | alphabeta; dedup on (cdr3b, cdr3a, epitope) |
-| **Total** | | **~218,826** | |
+| **Total** | | **~356,454** | |
