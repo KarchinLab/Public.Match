@@ -4,18 +4,20 @@ from pathlib import Path
 BATCAVE_MHCI_PATH = Path("Databases/BATCAVE/TCR_pMHCI_mutational_scan.csv")
 BATCAVE_MHCII_PATH = Path("Databases/BATCAVE/TCR_pMHCII_mutational_scan.csv")
 
-# keep only native epitope rows with meaningful activation
-_MHCI_ACTIVITY_THRESHOLD = 20.0   # 0–100 scale
-_MHCII_ACTIVITY_THRESHOLD = 0.2   # 0–1 scale
+# BATCAVE mixes 13 assay types on incompatible scales (0–1 normalized vs 0–34,770 absolute).
+# A single absolute threshold incorrectly drops all normalized-assay entries where 1.0 = full
+# native-peptide response. Since peptide == index_peptide already guarantees a real binder,
+# we only require strictly positive activation (> 0).
+_MIN_ACTIVITY = 0.0   # strictly positive; applied as > 0
 
 
-def _load_file(path: Path, activity_threshold: float) -> pd.DataFrame:
+def _load_file(path: Path) -> pd.DataFrame:
     df = pd.read_csv(path)
 
-    # filter: human TCRs, native epitope only, positive binders
+    # filter: human TCRs, native epitope only, positive activation
     df = df[df["tcr_source_organism"].str.lower() == "human"].copy()
     df = df[df["peptide"] == df["index_peptide"]].copy()
-    df = df[df["peptide_activity"] >= activity_threshold].copy()
+    df = df[df["peptide_activity"] > _MIN_ACTIVITY].copy()
     df = df[df["cdr3b"].notna()].copy()
 
     return pd.DataFrame({
@@ -35,9 +37,9 @@ def load(
 ) -> pd.DataFrame:
     parts = []
     if mhci_path.exists():
-        parts.append(_load_file(mhci_path, _MHCI_ACTIVITY_THRESHOLD))
+        parts.append(_load_file(mhci_path))
     if mhcii_path.exists():
-        parts.append(_load_file(mhcii_path, _MHCII_ACTIVITY_THRESHOLD))
+        parts.append(_load_file(mhcii_path))
 
     if not parts:
         return pd.DataFrame(columns=["cdr3b", "epitope", "antigen", "pathogen", "HLA", "source_db"])

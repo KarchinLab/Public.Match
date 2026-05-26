@@ -37,16 +37,45 @@ _FASTA_EXTENSIONS = {".fasta", ".fa", ".faa", ".fas"}
 _CDR3B_ALIASES = ["cdr3b", "cdr3_beta", "cdr3_b", "junction_aa", "cdr3", "CDR3", "sequence"]
 _CDR3A_ALIASES = ["cdr3a", "cdr3_alpha", "cdr3_a", "TRA_CDR3", "cdr3_TRA", "junction_aa_alpha"]
 _NAME_ALIASES  = ["name", "id", "cell_id", "barcode", "clone_id", "sample_id"]
+_AIRR_COLS     = {"junction_aa", "v_call", "productive"}
 
 
 def _detect_format(path: Path) -> str:
     if path.suffix.lower() in _FASTA_EXTENSIONS:
         return "fasta"
     if path.suffix.lower() in (".tsv", ".csv", ".txt"):
+        # Peek at header to distinguish AIRR from generic tabular
+        with open(path) as f:
+            header = set(f.readline().rstrip("\n").split("\t"))
+        if _AIRR_COLS.issubset(header):
+            return "airr"
         return "tabular"
     with open(path) as f:
         first_char = f.read(1)
     return "fasta" if first_char == ">" else "tabular"
+
+
+def parse_airr(path: Path, chain: str = "paired") -> dict[str, str | tuple[str, str]]:
+    """Parse AIRR-format TSV: pivot TRA/TRB rows into per-cell paired sequences."""
+    df = pd.read_csv(path, sep="\t", usecols=["cell_id", "v_call", "junction_aa", "productive"])
+    df = df[df["productive"].astype(str).str.upper() == "T"].copy()
+    df["junction_aa"] = df["junction_aa"].astype(str).str.upper().str.strip()
+    df = df[df["junction_aa"].str.match(r"^[ACDEFGHIKLMNPQRSTVWY]+$", na=False)]
+
+    is_trb = df["v_call"].str.startswith("TRB")
+    is_tra = df["v_call"].str.startswith("TRA")
+
+    trb = df[is_trb][["cell_id", "junction_aa"]].drop_duplicates("cell_id").rename(columns={"junction_aa": "cdr3b"})
+    tra = df[is_tra][["cell_id", "junction_aa"]].drop_duplicates("cell_id").rename(columns={"junction_aa": "cdr3a"})
+
+    if chain == "beta":
+        return {row.cell_id: row.cdr3b for row in trb.itertuples()}
+    if chain == "alpha":
+        return {row.cell_id: row.cdr3a for row in tra.itertuples()}
+
+    # paired: inner join on cell_id
+    merged = trb.merge(tra, on="cell_id", how="inner")
+    return {row.cell_id: (row.cdr3a, row.cdr3b) for row in merged.itertuples()}
 
 
 def _find_col(columns, aliases):
@@ -223,6 +252,8 @@ def main():
         sequences = _parse_paired_fasta(args.input, args.input_alpha)
     elif fmt == "fasta":
         sequences = parse_fasta(args.input)
+    elif fmt == "airr":
+        sequences = parse_airr(args.input, chain=args.chain)
     else:
         sequences = parse_tabular(
             args.input,
