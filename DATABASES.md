@@ -117,14 +117,17 @@ Public.Match uses `Score >= 0` to maximise coverage. To restrict to publication-
 **Files:** `Databases/10xDcode/vdj_v1_hs_aggregated_donor{1–4}_binarized_matrix.csv`
 **Long format:** `Databases/10xDcode/10xDcode_long.csv`
 **Source:** 10x Genomics public dataset (4 healthy donors)
-**Raw cells:** ~46k–78k per donor
+**Raw cells:** ~189,500 across 4 donors (~85,500 confirmed binder cell–epitope pairs)
 **Loaded for matching:** ~18,561
 **Format:** CSV
 
 ### Filtering applied
-- Uses the pre-reshaped long format (`10xDcode_long.csv`) — beta-chain confirmed binders only
-- Only cells where `_binder == True` for a given dextramer
-- Deduplicate on `(cdr3b, epitope)`
+- Keep only cells where `_binder == True` for a given dextramer (~85,500 binder cell–epitope pairs)
+- Cells with no CDR3β detected (~5,100) are excluded
+- Deduplicate on `(cdr3b, epitope, HLA, donor)` — collapses clonally expanded cells (same CDR3β appearing across many cells of the same donor); ~85,500 pairs → ~18,800 unique clone–epitope combinations
+- Parser deduplicates further on `(cdr3b, epitope)` — collapses the same TCR seen across multiple donors → ~18,561
+
+> **Why ~190k cells → ~18k entries?** The raw files are one row per *cell*, not per *clone*. Clonally expanded T cells share the same CDR3β; the most abundant clone in the dataset appears in ~6,700 cells across one donor alone. After collapsing to unique CDR3β–epitope pairs the redundancy resolves to ~18,561 distinct entries.
 
 ### Epitope column format
 
@@ -272,7 +275,7 @@ Counts shown are for **beta-chain mode** (default), after all filtering and dedu
 | IEDB | ~217,000 | ~164,240 | beta chain rows only; dedup on (cdr3b, epitope) |
 | VDJdb | ~209,000 | ~95,256 | HomoSapiens; score ≥ 0; dedup on (cdr3b, cdr3a, epitope) |
 | McPAS | ~40,700 | ~29,649 | Human only; dedup on (cdr3b, epitope) |
-| 10x Dcode | ~190k cells | ~18,561 | Confirmed binders only; dedup on (cdr3b, epitope) |
+| 10x Dcode | ~190k cells / ~85k binder pairs | ~18,561 | Confirmed binders; clonal dedup on (cdr3b, epitope) |
 | MixTCRpred | ~17,700 | ~6,875 | HomoSapiens; dedup on (cdr3b, epitope) |
 | BATCAVE | ~30,600 | ~60 | Human; native peptide only; activity > 0 |
 | NeoTCR | ~1,000 | ~916 | dedup on (cdr3b, epitope) |
